@@ -12,13 +12,18 @@ function App() {
   const [previewSrc, setPreviewSrc] = useState("");
 
   const handleFileSelected = async (e) => {
+    console.log(e.target.files[0].name);
     setFile(() => e.target.files[0]);
-    doTranscode(e.target.files[0]);
+    doTranscode(e.target.files[0]).then(() => {
+      console.log("끝~.~");
+    });
   };
 
   const doTranscode = async (file) => {
-    console.log("Loading ffmpeg-core.js");
-    await ffmpeg.load();
+    if (!ffmpeg.isLoaded()) {
+      console.log("Loading ffmpeg-core.js");
+      await ffmpeg.load();
+    }
 
     console.log("Start transcoding");
     ffmpeg.FS(
@@ -26,12 +31,19 @@ function App() {
       file.name,
       await fetchFile(URL.createObjectURL(file))
     );
-    await ffmpeg.run("-i", file.name, "-r", "60", "test.mp4");
+    await ffmpeg.run("-i", file.name, "test.mp4");
 
     console.log("Complete transcoding");
 
-    const mp4File = ffmpeg.FS("readFile", "test.mp4");
-    const mp4Blob = new Blob([mp4File.buffer], { type: "video/mp4" });
+    const lastDot = file.name.lastIndexOf(".");
+
+    const data = ffmpeg.FS("readFile", "test.mp4");
+    const mp4Blob = new Blob([data.buffer], { type: "video/mp4" });
+    const mp4File = new File(
+      [data.buffer],
+      `${file.name.substring(lastDot, -1)}.mp4`,
+      { type: "video/mp4" }
+    );
 
     setPreviewSrc(URL.createObjectURL(mp4Blob));
   };
